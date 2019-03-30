@@ -1,0 +1,27 @@
+# Configuration for entitymanager command.
+# 
+# Colors are represented by a dollar sign followed by a number (ex. $1, $2, $3).
+# The number represents which color from the list below will be used.
+# $1 is the first color in the list, $2 is the second color, $3 is the third, etc.
+colors:
+- '&3&l'
+- '&3'
+- '&b'
+- '&7&o'
+- '&c&l'
+- '&c'
+subcommands:
+  reload:
+    wrongSenderType: $6Only Players can run this command.
+  spawn:
+    filter:
+      type:
+        Stackable: '$6That is not a valid stackable entity!'
+    wrongSenderType: $6Only Players can run this command.
+    missing:
+      type: '$1Usage: $3/entitymanager spawn $5<type> $6<count>'
+      count: '$1Usage: $3/entitymanager spawn $3<type> $5<count>'
+invalidSubCommand:
+- '$1Help:'
+- $2- $3/entitymanager reload
+- $2- $3/entitymanager spawn $4<type> $4<count>

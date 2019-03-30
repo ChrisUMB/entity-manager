@@ -1,0 +1,51 @@
+#General options per module.
+options:
+  #Stacking options.
+  stacking:
+    #How many ticks in between random mob finding and stack attempting. For lag control purposes.
+    frequency: 1
+    #How many entities will be looked for at every frequency. Raise this if entities aren't stacking fast enough.
+    count: 5
+
+entities:
+  default:
+    #For stacking, these variables are absolutely necessary to have set!
+    #Without these, if you don't set them below in EVERY SINGLE entity type with stacking enabled, the plugin will
+    #more than likely error out.
+    stacking:
+      #The name of the stack, "type" is the entity type name and "count" is the current count.
+      stack-name: "&a&l{type} &ax &a&n{count}"
+      #The limit of how many times this entity can stack.
+      limit: 10
+      #The radius in which entities will look for potential stacking partners.
+      radius: 15
+      #This is a list of all potential ways a stacked entity will kill it's entire stack.
+      #Full list: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+      stack-death:
+        - "FALL"
+      #This will multiply drops if the entire stack is killed when set to true.
+      multiply-drops: true
+      #This controls whether or not "diverse" mobs will stack. For instance, if set to false, black sheep and blue sheep
+      #would not stack, neither would baby variants, entities with different equipment, etc.
+      stack-diverse: true
+  PIG:
+    stacking:
+      stack-name: "&c&lPig &cx &c&n{count}"
+      limit: 50
+      radius: 5
+      stack-death:
+        - "FALL"
+        - "FIRE"
+        - "FIRE_TICK"
+  SHEEP:
+    stacking:
+      #This would allow for stacks of blue, stacks of green, etc to all be separate.
+      stack-diverse: false
+
+  VILLAGER:
+    stacking:
+      exempt: true
+  #You're going to want this to be disabled for stacking if you have holograms. Trust me.
+  ARMOR_STAND:
+    stacking:
+      exempt: true

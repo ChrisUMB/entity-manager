@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '5.0.0'
+}
+
+group 'me.chrisumb'
+version '1.0'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven { url "https://sparse.blue/maven" }
+    maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots" }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+}
+
+dependencies {
+    compileOnly fileTree('D:/Spigot/Versions')
+    compile "blue.sparse.bukkit-shade:commands:+"
+    compile "blue.sparse.bukkit-shade:util:+"
+}
+
+shadowJar {
+    relocate 'blue.sparse.bshade', 'me.chrisumb.entitymanager.bshade'
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-parameters'
+}

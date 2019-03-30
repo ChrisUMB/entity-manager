@@ -1,0 +1,9 @@
+Efficient Mob/Entity Stacking {
+    Custom Stack Limits (includes items)
+    Custom Stack Names
+    Whole Stack Killing With Multiplied Drops
+
+    No Damage Ticks Checking (Don't stack if they have no damage ticks active, in case of iron golem farms and stuff like that)
+}
+
+Custom Drops Per Mob

@@ -1,0 +1,105 @@
+#Per entity, you have `custom-drops` and `custom-spawns`, which are optional.
+
+entities:
+  #This is the default, any entity not put in here and not blacklisted will have these attributes applied.
+  default:
+    stacking:
+      limit: 10
+      radius: 2
+      multiply-drops: true
+      merge-diverse: true
+
+  PIG:
+    #Here, you can configure how this entity stacks.
+    stacking:
+      #Every stack of pigs would be limited to 50, after that, there would be a new stack created.
+      limit: 50
+      #This is the radius in which it'll check for new entities to stack with.
+      radius: 5
+      #If the entire stack is killed, we will multiply the drops to reflect a drop per entity in the stack.
+      multiply-drops: true
+      #These are the conditions in which the entire stack would die, otherwise, kill a single entity.
+      #All types: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+      stack-death:
+        - "FALL"
+        - "FIRE"
+        - "FIRE_TICK"
+      #Option to merge "diverse" entities, i.e baby pigs and adult pigs. Set to false, baby pigs and pigs would stack differently.
+      merge-diverse: false
+    #Here, you can setup custom drops for entities.
+    custom-drops:
+      #The chance, per entity death, that this item will drop. .5 = 50%
+      - chance: .5
+        #Full list: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+        type: DIRT
+        amount:
+          min: 1
+          max: 3
+        #Optional. Defaults to the item name.
+        name: "Dirt!"
+        #Optional. Defaults to blank.
+        lore:
+          - "Thing!"
+        #Optional. Defaults to blank. https://hub.spigotmc.org/javadocs/spigot/org/bukkit/enchantments/Enchantment.html
+        enchantments:
+          - "DAMAGE_ALL:1"
+      - chance: .01
+        type: BEDROCK
+        amount:
+          min: 1
+          max: 2
+      - chance: .05
+        type: DIAMOND_SWORD
+        amount:
+          min: 1
+          max: 1
+        enchantments:
+          - "DAMAGE_ALL:5"
+          - "FIRE_ASPECT:2"
+    #Here, you can customize the entity under certain spawn conditions.
+    custom-spawns:
+      #If the entity spawns for a spawn reason not configured here, this is the block that is applied.
+      #If this is not present, nothing will happen for any spawn events that aren't configured below.
+      default:
+        #This is saying that there is a 50% chance to spawn the pig with a half a heart.
+        - chance: .5
+          health: 1
+      #This is the spawn type associated with an entity spawning from a spawner.
+      #All types: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/event/entity/CreatureSpawnEvent.SpawnReason.html
+      SPAWNER:
+        #This will happen 100% of the time.
+        - chance: 1.0
+          #This will give the pig a slowness potion of 3 forever, "I" standing for "Infinite".
+          #If you wanted to do a custom amount of time, replace "I" with a time in ticks. 20 ticks are in a second.
+          potions:
+            - "SLOW:3:I"
+  ZOMBIE:
+    custom-spawns:
+      SPAWNER:
+        #Disallow two effects happening at once, i.e a "Speed Zombie" and a "Super Zombie".
+        allow-duplicate-effects: false
+        effects:
+          - chance: 0.5
+            name: "&b&lSpeed Zombie"
+            health: 100
+            potions:
+              - "SPEED:3:2000"
+          - chance: 0.5
+            name: "&c&lSuper Zombie"
+            equipment:
+              helmet:
+                type: DIAMOND_HELMET
+              chestplate:
+                type: DIAMOND_CHESTPLATE
+              leggings:
+                type: DIAMOND_LEGGINGS
+              boots:
+                type: DIAMOND_BOOTS
+              hand:
+                type: DIAMOND_SWORD
+                name: "&cSuper Zombie Sword"
+                #This will drop 50% of the time when the zombie dies.
+                drop-chance: .5
+                enchantments:
+                  - "DAMAGE_ALL:5"
+                  - "FIRE_ASPECT:2"

@@ -1,0 +1,3 @@
+name: EntityManager
+main: me.chrisumb.entitymanager.EntityManagerPlugin
+version: 1.0

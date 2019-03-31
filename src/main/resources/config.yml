@@ -15,18 +15,20 @@ entities:
     stacking:
       #Configure if to play the death animation or not when an entity is killed in a stack.
       death-animation: false
-      #Limits the amount of stacked entities to remove from a stack when a whole stack is killed, 0 is uncapped.
-      stack-death-limit: 50
       #The name of the stack, "type" is the entity type name and "count" is the current count.
       stack-name: "&a&l{type} &ax &a&n{count}"
       #The limit of how many times this entity can stack.
-      limit: 10
+      limit: 1000
       #The radius in which entities will look for potential stacking partners.
       radius: 15
-      #This is a list of all potential ways a stacked entity will kill it's entire stack.
-      #Full list: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
-      stack-death:
-        - "FALL"
+      #Map of how many entities in a stack will die for a specific cause of death.
+      #0 will kill the entire stack.
+      #Full list of death causes: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+      death-count:
+        default: 1
+        ENTITY_ATTACK: 50
+        FALL: 0
+
       #This will multiply drops if the entire stack is killed when set to true.
       multiply-drops: true
       #This controls whether or not "diverse" mobs will stack. For instance, if set to false, black sheep and blue sheep
@@ -37,10 +39,10 @@ entities:
       stack-name: "&c&lPig &cx &c&n{count}"
       limit: 50
       radius: 5
-      stack-death:
-        - "FALL"
-        - "FIRE"
-        - "FIRE_TICK"
+      death-count:
+        FALL: 0
+        FIRE: 0
+        FIRE_TICK: 0
   SHEEP:
     stacking:
       #This would allow for stacks of blue, stacks of green, etc to all be separate.

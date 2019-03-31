@@ -203,7 +203,7 @@ public final class EntityUtil {
             if (getRareDropMethod != null && random.nextFloat() < 0.025F + (float) lootingLevel * 0.01F)
                 getRareDropMethod.invoke(entityHandle);
 
-            dropsField.set(entityHandle, null);
+            dropsField.set(entityHandle, new ArrayList<>());
 
         } catch (Exception e) {
             e.printStackTrace();

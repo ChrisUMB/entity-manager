@@ -6,8 +6,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.event.entity.EntityDamageEvent;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public final class EntityTypeSettingsLoader {
 
@@ -43,14 +42,21 @@ public final class EntityTypeSettingsLoader {
             boolean multiplyDrops = stackingSection.getBoolean("multiply-drops");
             boolean stackDiverse = stackingSection.getBoolean("stack-diverse");
             boolean doDeathAnimation = stackingSection.getBoolean("death-animation");
-            List<EntityDamageEvent.DamageCause> stackDeathCauses = new ArrayList<>();
             String stackNameFormat = stackingSection.getString("stack-name");
-            int stackDeathLimit = stackingSection.getInt("stack-death-limit");
 
-            if (stackingSection.contains("stack-death")) {
-                List<String> damageCauseNames = stackingSection.getStringList("stack-death");
-                for (String name : damageCauseNames) {
-                    stackDeathCauses.add(EntityDamageEvent.DamageCause.valueOf(name));
+            Map<EntityDamageEvent.DamageCause, Integer> deathCauseCounts = new HashMap<>();
+            int defaultDeathCount = 1;
+
+            if(stackingSection.contains("death-count")) {
+                ConfigurationSection deathCounts = stackingSection.getConfigurationSection("death-count");
+                if(deathCounts.contains("default"))
+                    defaultDeathCount = Math.min(0, deathCounts.getInt("default"));
+
+                Set<String> keys = deathCounts.getKeys(false);
+                for(String key : keys) {
+                    try {
+                        deathCauseCounts.put(EntityDamageEvent.DamageCause.valueOf(key), deathCounts.getInt(key));
+                    }catch (IllegalArgumentException ignored) {}
                 }
             }
 
@@ -61,9 +67,9 @@ public final class EntityTypeSettingsLoader {
                             multiplyDrops,
                             stackDiverse,
                             doDeathAnimation,
-                            stackDeathCauses,
-                            stackNameFormat,
-                            stackDeathLimit
+                            defaultDeathCount,
+                            deathCauseCounts,
+                            stackNameFormat
                     )
             );
         }

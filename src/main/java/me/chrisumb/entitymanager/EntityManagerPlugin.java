@@ -35,7 +35,7 @@ public class EntityManagerPlugin extends JavaPlugin {
                 EntityManagerCommand.Stackable.class,
                 EntityType.class,
                 (stackable, entityType) -> {
-
+                    System.out.println("Checking entity type "+entityType);
                     EntityTypeSettings settings = EntityTypeSettings.getSettings(entityType);
                     if(settings == null)
                         return false;

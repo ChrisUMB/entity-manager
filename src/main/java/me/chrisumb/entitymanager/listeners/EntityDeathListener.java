@@ -20,128 +20,130 @@ import java.util.List;
 
 public class EntityDeathListener implements Listener {
 
-    @EventHandler
-    public void onDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof LivingEntity))
-            return;
+	@EventHandler
+	public void onDamage(EntityDamageEvent event) {
+		if (!(event.getEntity() instanceof LivingEntity))
+			return;
 
-        LivingEntity entity = (LivingEntity) event.getEntity();
-        EntityTypeSettings.Stacking stackingSettings = getStackingSettings(entity);
+		LivingEntity entity = (LivingEntity) event.getEntity();
+		EntityTypeSettings.Stacking stackingSettings = getStackingSettings(entity);
 
-        if (stackingSettings == null)
-            return;
+		if (stackingSettings == null)
+			return;
 
-        if (stackingSettings.doDeathAnimation())
-            return;
+		if (stackingSettings.doDeathAnimation())
+			return;
 
-        if (entity.getHealth() > event.getFinalDamage())
-            return;
+		if (entity.getHealth() > event.getFinalDamage())
+			return;
 
-        //Cancelling would allow for hitting it SUPER DUPER fast and killing them pretty fuckin' fast.
-        // Potential config option: stack-fast-attack
+		//Cancelling would allow for hitting it SUPER DUPER fast and killing them pretty fuckin' fast.
+		// Potential config option: stack-fast-attack
 
-        int count = Stacker.getStackCount(entity);
+		int count = Stacker.getStackCount(entity);
 
-        if (count == 1)
-            return;
+		if (count == 1)
+			return;
 
-        entity.setLastDamageCause(event);
-        event.setDamage(0.0);
-        kill(entity, false);
-        entity.setHealth(entity.getMaxHealth());
-    }
+		entity.setLastDamageCause(event);
+		if (!kill(entity, false)) {
+			event.setDamage(0.0);
+			entity.setHealth(entity.getMaxHealth());
+		}
+	}
 
-    @EventHandler
-    public void onDeath(EntityDeathEvent event) {
-        EntityTypeSettings.Stacking stackingSettings = getStackingSettings(event.getEntity());
+	@EventHandler
+	public void onDeath(EntityDeathEvent event) {
+		EntityTypeSettings.Stacking stackingSettings = getStackingSettings(event.getEntity());
 
-        if (stackingSettings == null)
-            return;
+		if (stackingSettings == null)
+			return;
 
-        if (!stackingSettings.doDeathAnimation())
-            return;
+		if (!stackingSettings.doDeathAnimation())
+			return;
 
-        kill(event.getEntity(), true);
-    }
+		kill(event.getEntity(), true);
+	}
 
-    private void kill(LivingEntity entity, boolean didEntityDie) {
-        EntityTypeSettings.Stacking stackingSettings = getStackingSettings(entity);
+	private boolean kill(LivingEntity entity, boolean didEntityDie) {
+		EntityTypeSettings.Stacking stackingSettings = getStackingSettings(entity);
 
-        if (stackingSettings == null)
-            return;
+		if (stackingSettings == null)
+			return false;
 
-        int count = Stacker.getStackCount(entity);
-        int toKill = 1;
+		int count = Stacker.getStackCount(entity);
 
-        if (didEntityDie && count >= 1 && entity.getCustomName() != null) {
-            entity.setCustomName(null);
-            entity.setCustomNameVisible(false);
-        }
+		if (didEntityDie && count >= 1 && entity.getCustomName() != null) {
+			entity.setCustomName(null);
+			entity.setCustomNameVisible(false);
+		}
 
-        EntityDamageEvent.DamageCause damageCause = entity.getLastDamageCause().getCause();
+		EntityDamageEvent.DamageCause damageCause = entity.getLastDamageCause().getCause();
+		int maxToKill = stackingSettings.getDamageCauseDeathCount(damageCause);
+		int toKill;
 
-        if (stackingSettings.getStackDeathCauses().contains(damageCause)) {
-            int stackDeathLimit = stackingSettings.getStackDeathLimit();
+		if (maxToKill > 0) {
+			toKill = count % maxToKill;
+			if (toKill == 0)
+				toKill = Math.min(count, maxToKill);
+		} else {
+			toKill = count;
+		}
 
-            if (stackDeathLimit > 0) {
-                toKill = count % stackDeathLimit;
-                if (toKill == 0)
-                    toKill = Math.min(count, stackDeathLimit);
-            } else {
-                toKill = count;
-            }
+		if (stackingSettings.isMultiplyDrops()) {
+			multiplyDrops(toKill - 1, entity);
+		}
 
-            if (stackingSettings.isMultiplyDrops()) {
-                multiplyDrops(toKill - 1, entity);
-            }
-        }
+		count -= toKill;
 
-        if (count > 1) {
-            LivingEntity newEntity = didEntityDie ? (LivingEntity) entity.getWorld().spawnEntity(entity.getLocation(), entity.getType()) : entity;
+		if (count > 1) {
+			LivingEntity newEntity = didEntityDie ? (LivingEntity) entity.getWorld().spawnEntity(entity.getLocation(), entity.getType()) : entity;
 
-            if (!stackingSettings.doDeathAnimation()) {
-                EntityUtil.regenerateEquipment(EntityUtil.getEntityHandle(newEntity));
-                multiplyDrops(1, newEntity);
-            }
+			if (!stackingSettings.doDeathAnimation()) {
+				EntityUtil.regenerateEquipment(EntityUtil.getEntityHandle(newEntity));
+				multiplyDrops(1, newEntity);
+			}
 
-            Stacker.setStackCount(newEntity, count - toKill);
-            Stacker.updateStackName(newEntity);
-        }
-    }
+			Stacker.setStackCount(newEntity, count);
+			Stacker.updateStackName(newEntity);
 
-    private EntityTypeSettings.Stacking getStackingSettings(LivingEntity entity) {
-        EntityTypeSettings settings = EntityTypeSettings.getSettings(entity.getType());
-        if (settings == null)
-            return null;
+			return false;
+		} else {
+			return count <= 0;
+		}
+	}
 
-        return settings.getStacking();
-    }
+	private EntityTypeSettings.Stacking getStackingSettings(LivingEntity entity) {
+		EntityTypeSettings settings = EntityTypeSettings.getSettings(entity.getType());
+		if (settings == null)
+			return null;
 
-    private void multiplyDrops(int count, LivingEntity entity) {
-        if (count <= 0)
-            return;
+		return settings.getStacking();
+	}
 
-        Location loc = entity.getLocation();
-        List<ItemStack> drops = new MergingItemStackList();
+	private void multiplyDrops(int count, LivingEntity entity) {
+		if (count <= 0)
+			return;
 
-        int experience = 0;
+		Location loc = entity.getLocation();
+		List<ItemStack> drops = new MergingItemStackList();
 
-        Object handle = EntityUtil.getEntityHandle(entity);
+		int experience = 0;
 
-        final Player killer = entity.getKiller();
-        for (int i = 0; i < count; i++) {
-            if (i > 0)
-                EntityUtil.regenerateEquipment(handle);
+		Object handle = EntityUtil.getEntityHandle(entity);
 
-            List<ItemStack> itemDrops = EntityUtil.getItemDrops(handle, killer, new ArrayList<>());
-            drops.addAll(itemDrops);
-            experience += EntityUtil.getExperienceDrops(entity);
-        }
+		final Player killer = entity.getKiller();
+		for (int i = 0; i < count; i++) {
+			List<ItemStack> itemDrops = EntityUtil.getItemDrops(handle, killer, new ArrayList<>());
+			drops.addAll(itemDrops);
+			experience += EntityUtil.getExperienceDrops(entity);
+			EntityUtil.regenerateEquipment(handle);
+		}
 
-        ItemStackUtil.dropAll(drops, entity.getLocation(), false, true);
+		ItemStackUtil.dropAll(drops, entity.getLocation(), false, true);
 
-        if (experience > 0) {
-            loc.getWorld().spawn(loc, ExperienceOrb.class).setExperience(experience);
-        }
-    }
+		if (experience > 0) {
+			loc.getWorld().spawn(loc, ExperienceOrb.class).setExperience(experience);
+		}
+	}
 }

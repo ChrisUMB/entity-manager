@@ -79,32 +79,31 @@ public class EntityTypeSettings {
         private boolean multiplyDrops;
         private boolean stackDiverse;
         private boolean doDeathAnimation;
-        private List<EntityDamageEvent.DamageCause> stackDeathCauses;
+
+        private int defaultDeathCount;
+        private Map<EntityDamageEvent.DamageCause, Integer> deathCauseCounts;
+
         private String stackNameFormat;
-        private int stackDeathLimit;
 
         public Stacking(int limit,
                         int radius,
                         boolean multiplyDrops,
                         boolean mergeDiverse,
                         boolean doDeathAnimation,
-                        List<EntityDamageEvent.DamageCause> stackDeathCauses,
-                        String stackNameFormat,
-                        int stackDeathLimit
+                        int defaultDeathCount,
+                        Map<EntityDamageEvent.DamageCause, Integer> deathCauseCounts,
+                        String stackNameFormat
         ) {
             this.limit = limit;
             this.radius = radius;
             this.multiplyDrops = multiplyDrops;
             this.stackDiverse = mergeDiverse;
             this.doDeathAnimation = doDeathAnimation;
-            this.stackDeathCauses = stackDeathCauses;
+            this.defaultDeathCount = defaultDeathCount;
+            this.deathCauseCounts = deathCauseCounts;
             this.stackNameFormat = stackNameFormat;
-            this.stackDeathLimit = stackDeathLimit;
         }
 
-        public int getStackDeathLimit() {
-            return stackDeathLimit;
-        }
 
         public boolean doDeathAnimation() {
             return doDeathAnimation;
@@ -126,8 +125,19 @@ public class EntityTypeSettings {
             return stackDiverse;
         }
 
-        public List<EntityDamageEvent.DamageCause> getStackDeathCauses() {
-            return stackDeathCauses;
+        public Map<EntityDamageEvent.DamageCause, Integer> getDeathCauseCounts() {
+            return deathCauseCounts;
+        }
+
+        public int getDefaultDeathCount() {
+            return defaultDeathCount;
+        }
+
+        public int getDamageCauseDeathCount(EntityDamageEvent.DamageCause cause) {
+            if(cause == null)
+                return defaultDeathCount;
+
+            return deathCauseCounts.getOrDefault(cause, defaultDeathCount);
         }
 
         public String getStackNameFormat() {

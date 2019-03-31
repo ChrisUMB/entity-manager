@@ -5,9 +5,11 @@ import org.bukkit.entity.*;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.Ref;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -15,217 +17,278 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public final class EntityUtil {
 
-	private static Method getCombatTrackerMethod = null;
-	private static Method dropDeathLootMethod = null;
-	private static Method getExpRewardMethod = null;
-	private static Method getRareDropMethod = null;
-	private static Method getHandleMethod = null;
-	private static Method addDropsMethod = null;
+    private static Method regenerateEquipmentEnchantsMethod = null;
+    private static Method regenerateEquipmentMethod = null;
+    private static Method getCombatTrackerMethod = null;
+    private static Method getDamageScalerMethod = null;
+    private static Method dropDeathLootMethod = null;
+    private static Method getExpRewardMethod = null;
+    private static Method getRareDropMethod = null;
+    private static Method getBukkitEntity = null;
+    private static Method getHandleMethod = null;
+    private static Method addDropsMethod = null;
 
-	private static Field combatEntryListField = null;
-	private static Field damageSourceField = null;
-	private static Field dropsField = null;
+    private static Field genericDamageSourceField = null;
+    private static Field combatEntryListField = null;
+    private static Field damageSourceField = null;
+    private static Field dropsField = null;
+    private static Field worldField = null;
 
-	static {
-		try {
-			Class<?> elClass = ReflectionUtil.getVanillaClass("EntityLiving");
-			getHandleMethod = ReflectionUtil.getCraftClass("entity.CraftLivingEntity").getDeclaredMethod("getHandle");
+    private static Constructor<?> blockPositionConstructor = null;
 
-			dropsField = elClass.getDeclaredField("drops");
-			dropsField.setAccessible(true);
+    static {
 
-			dropDeathLootMethod = elClass.getDeclaredMethod("dropDeathLoot", boolean.class, int.class);
-			dropDeathLootMethod.setAccessible(true);
+        try {
+            Class<?> elClass = ReflectionUtil.getVanillaClass("EntityLiving");
+            getHandleMethod = ReflectionUtil.getCraftClass("entity.CraftLivingEntity").getDeclaredMethod("getHandle");
 
-			getExpRewardMethod = elClass.getDeclaredMethod("getExpReward");
-			getExpRewardMethod.setAccessible(true);
+            genericDamageSourceField = ReflectionUtil.getVanillaClass("DamageSource").getDeclaredField("GENERIC");
 
-			try {
-				getCombatTrackerMethod = elClass.getDeclaredMethod("getCombatTracker");
-				getCombatTrackerMethod.setAccessible(true);
-			} catch (NoSuchMethodException ignored) {
+            getBukkitEntity = ReflectionUtil.getVanillaClass("Entity").getMethod("getBukkitEntity");
+            getBukkitEntity.setAccessible(true);
 
-			}
+            worldField = ReflectionUtil.getVanillaClass("Entity").getDeclaredField("world");
+            worldField.setAccessible(true);
 
-			try {
-				combatEntryListField = ReflectionUtil.getVanillaClass("CombatTracker").getDeclaredField("a");
-				combatEntryListField.setAccessible(true);
-			} catch (NoSuchFieldException ignored) {
+            getDamageScalerMethod = ReflectionUtil.getVanillaClass("World")
+                    .getDeclaredMethod("getDamageScaler", ReflectionUtil.getVanillaClass("BlockPosition"));
+            getDamageScalerMethod.setAccessible(true);
 
-			}
+            blockPositionConstructor = ReflectionUtil.getVanillaClass("BlockPosition")
+                    .getConstructor(ReflectionUtil.getVanillaClass("Entity"));
 
-			try {
-				damageSourceField = ReflectionUtil.getVanillaClass("CombatEntry").getDeclaredField("a");
-				damageSourceField.setAccessible(true);
-			} catch (NoSuchFieldException ignored) {
+            blockPositionConstructor.setAccessible(true);
 
-			}
+            dropsField = elClass.getDeclaredField("drops");
+            dropsField.setAccessible(true);
 
-			try {
-				addDropsMethod = elClass.getDeclaredMethod("a",
-						boolean.class,
-						int.class,
-						ReflectionUtil.getVanillaClass("DamageSource"));
-				addDropsMethod.setAccessible(true);
-			} catch (NoSuchMethodException ignored) {
-			}
+            dropDeathLootMethod = elClass.getDeclaredMethod("dropDeathLoot", boolean.class, int.class);
+            dropDeathLootMethod.setAccessible(true);
 
-			try {
-				getRareDropMethod = elClass.getDeclaredMethod("getRareDrop");
-				getRareDropMethod.setAccessible(true);
-			} catch (NoSuchMethodException ignored) {
-			}
+            getExpRewardMethod = elClass.getDeclaredMethod("getExpReward");
+            getExpRewardMethod.setAccessible(true);
 
+            Class<?> difficultyDamageScalerClass = ReflectionUtil.getVanillaClass("DifficultyDamageScaler");
+            Class<?> entitySentientClass = ReflectionUtil.getVanillaClass("EntityInsentient");
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+            regenerateEquipmentMethod = entitySentientClass.getDeclaredMethod("a", difficultyDamageScalerClass);
+            regenerateEquipmentMethod.setAccessible(true);
 
-	public static Object getEntityHandle(LivingEntity entity) {
-		try {
-			return getHandleMethod.invoke(entity);
-		} catch (IllegalAccessException | InvocationTargetException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
+            regenerateEquipmentEnchantsMethod = entitySentientClass.getDeclaredMethod("b", difficultyDamageScalerClass);
+            regenerateEquipmentEnchantsMethod.setAccessible(true);
 
+            try {
+                getCombatTrackerMethod = elClass.getDeclaredMethod("getCombatTracker");
+                getCombatTrackerMethod.setAccessible(true);
+            } catch (NoSuchMethodException ignored) {
 
-	public static int getExperienceDrops(LivingEntity entity) {
-		return getExperienceDrops(getEntityHandle(entity));
-	}
+            }
 
-		//Reflection for getting experience drops.
-	public static int getExperienceDrops(Object entityHandle) {
-		try {
-			return (int) getExpRewardMethod.invoke(entityHandle);
-		} catch (IllegalAccessException | InvocationTargetException e) {
-			e.printStackTrace();
-		}
+            try {
+                combatEntryListField = ReflectionUtil.getVanillaClass("CombatTracker").getDeclaredField("a");
+                combatEntryListField.setAccessible(true);
+            } catch (NoSuchFieldException ignored) {
 
-		return 0;
-	}
+            }
 
-	public static List<ItemStack> getItemDrops(LivingEntity entity) {
-		return getItemDrops(getEntityHandle(entity), entity.getKiller(), null);
-	}
+            try {
+                damageSourceField = ReflectionUtil.getVanillaClass("CombatEntry").getDeclaredField("a");
+                damageSourceField.setAccessible(true);
+            } catch (NoSuchFieldException ignored) {
 
-	//Uses reflection for cross version loot table getting.
-	public static List<ItemStack> getItemDrops(Object entityHandle, Player killer, List<ItemStack> target) {
-		List<ItemStack> items = target == null ? new ArrayList<>() : target;
+            }
 
-		try {
-			int lootingLevel = 0;
+            try {
+                addDropsMethod = elClass.getDeclaredMethod("a",
+                        boolean.class,
+                        int.class,
+                        ReflectionUtil.getVanillaClass("DamageSource"));
+                addDropsMethod.setAccessible(true);
+            } catch (NoSuchMethodException ignored) {
+            }
 
-			if (killer != null) {
-				ItemStack item = killer.getItemInHand();
-				if (item != null)
-					lootingLevel = item.getEnchantmentLevel(Enchantment.LOOT_BONUS_MOBS);
-			}
-
-			ThreadLocalRandom random = ThreadLocalRandom.current();
-
-			dropsField.set(entityHandle, items);
-
-			if (addDropsMethod != null) {
-				Object combatTracker = getCombatTrackerMethod.invoke(entityHandle);
-				List<?> combatEntryList = (List<?>) combatEntryListField.get(combatTracker);
-				Object lastEntry = combatEntryList.get(combatEntryList.size() - 1);
-				addDropsMethod.invoke(entityHandle, true, lootingLevel, damageSourceField.get(lastEntry));
-			} else {
-				dropDeathLootMethod.invoke(entityHandle, true, lootingLevel);
-			}
-
-			if (getRareDropMethod != null && random.nextFloat() < 0.025F + (float) lootingLevel * 0.01F)
-				getRareDropMethod.invoke(entityHandle);
-
-			dropsField.set(entityHandle, null);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		return items;
-	}
-
-	public static boolean isSimilar(Entity one, Entity two) {
-		if (one.getType() != two.getType())
-			return false;
-
-		if (!Objects.equals(one.getCustomName(), two.getCustomName()))
-			return false;
-
-		if (one instanceof Ageable) {
-			Ageable ageableOne = (Ageable) one;
-			Ageable ageableTwo = (Ageable) two;
-			if (ageableOne.isAdult() != ageableTwo.isAdult())
-				return false;
-		}
-
-		if (one instanceof Villager) {
-
-			Villager villagerOne = (Villager) one;
-			Villager villagerTwo = (Villager) two;
-
-			if (villagerOne.getProfession() != villagerTwo.getProfession())
-				return false;
-		}
-
-		if (one instanceof Tameable) {
-			Tameable tameableOne = (Tameable) one;
-			Tameable tameableTwo = (Tameable) two;
-
-			if (tameableOne.isTamed() != tameableTwo.isTamed())
-				return false;
-
-			if (tameableOne.getOwner().getUniqueId() != tameableTwo.getOwner().getUniqueId())
-				return false;
-		}
-
-		if (one instanceof Sheep) {
-			Sheep sheepOne = (Sheep) one;
-			Sheep sheepTwo = (Sheep) two;
-
-			if (sheepOne.isSheared() != sheepTwo.isSheared())
-				return false;
-
-			if (sheepOne.getColor() != sheepTwo.getColor())
-				return false;
-		}
-
-		if (one instanceof Skeleton) {
-			Skeleton skeletonOne = (Skeleton) one;
-			Skeleton skeletonTwo = (Skeleton) two;
-
-			if (skeletonOne.getSkeletonType() != skeletonTwo.getSkeletonType())
-				return false;
-		}
+            try {
+                getRareDropMethod = elClass.getDeclaredMethod("getRareDrop");
+                getRareDropMethod.setAccessible(true);
+            } catch (NoSuchMethodException ignored) {
+            }
 
 
-		if (one instanceof LivingEntity) {
-			LivingEntity livingOne = (LivingEntity) one;
-			LivingEntity livingTwo = (LivingEntity) two;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-			EntityEquipment oneEquipment = livingOne.getEquipment();
-			EntityEquipment twoEquipment = livingTwo.getEquipment();
+    public static Object getEntityHandle(LivingEntity entity) {
+        try {
+            return getHandleMethod.invoke(entity);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
-			if (!oneEquipment.getHelmet().isSimilar(twoEquipment.getHelmet()))
-				return false;
 
-			if (!oneEquipment.getChestplate().isSimilar(twoEquipment.getChestplate()))
-				return false;
+    public static int getExperienceDrops(LivingEntity entity) {
+        return getExperienceDrops(getEntityHandle(entity));
+    }
 
-			if (!oneEquipment.getLeggings().isSimilar(twoEquipment.getLeggings()))
-				return false;
+    //Reflection for getting experience drops.
+    public static int getExperienceDrops(Object entityHandle) {
+        try {
+            return (int) getExpRewardMethod.invoke(entityHandle);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
 
-			if (!oneEquipment.getBoots().isSimilar(twoEquipment.getBoots()))
-				return false;
+        return 0;
+    }
 
-			if (!oneEquipment.getItemInHand().isSimilar(twoEquipment.getItemInHand()))
-				return false;
-		}
+    public static List<ItemStack> getItemDrops(LivingEntity entity) {
+        return getItemDrops(getEntityHandle(entity), entity.getKiller(), null);
+    }
 
-		return true;
-	}
+    public static void regenerateEquipment(Object entityHandle) {
+        try {
+            Object craftEntity = getBukkitEntity.invoke(entityHandle);
+            LivingEntity livingEntity = (LivingEntity) craftEntity;
+            livingEntity.getEquipment().clear();
+
+            Object world = worldField.get(entityHandle);
+            Object damageScaler = getDamageScalerMethod.invoke(
+                    world,
+                    blockPositionConstructor.newInstance(entityHandle));
+
+            regenerateEquipmentMethod.invoke(entityHandle, damageScaler);
+            regenerateEquipmentEnchantsMethod.invoke(entityHandle, damageScaler);
+        } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //Uses reflection for cross version loot table getting.
+    public static List<ItemStack> getItemDrops(Object entityHandle, Player killer, List<ItemStack> target) {
+        List<ItemStack> items = target == null ? new ArrayList<>() : target;
+
+        try {
+            int lootingLevel = 0;
+
+            if (killer != null) {
+                ItemStack item = killer.getItemInHand();
+                if (item != null)
+                    lootingLevel = item.getEnchantmentLevel(Enchantment.LOOT_BONUS_MOBS);
+            }
+
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+
+            dropsField.set(entityHandle, items);
+
+            if (addDropsMethod != null) {
+                Object lastDamageSource;
+
+                Object combatTracker = getCombatTrackerMethod.invoke(entityHandle);
+                List<?> combatEntryList = (List<?>) combatEntryListField.get(combatTracker);
+                if (combatEntryList.isEmpty()) {
+                    lastDamageSource = genericDamageSourceField.get(null);
+                } else {
+                    Object lastEntry = combatEntryList.get(combatEntryList.size() - 1);
+                    lastDamageSource = damageSourceField.get(lastEntry);
+                }
+
+                addDropsMethod.invoke(entityHandle, true, lootingLevel, lastDamageSource);
+            } else {
+                dropDeathLootMethod.invoke(entityHandle, true, lootingLevel);
+            }
+
+            if (getRareDropMethod != null && random.nextFloat() < 0.025F + (float) lootingLevel * 0.01F)
+                getRareDropMethod.invoke(entityHandle);
+
+            dropsField.set(entityHandle, null);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return items;
+    }
+
+    public static boolean isSimilar(Entity one, Entity two) {
+        if (one.getType() != two.getType())
+            return false;
+
+        if (!Objects.equals(one.getCustomName(), two.getCustomName()))
+            return false;
+
+        if (one instanceof Ageable) {
+            Ageable ageableOne = (Ageable) one;
+            Ageable ageableTwo = (Ageable) two;
+            if (ageableOne.isAdult() != ageableTwo.isAdult())
+                return false;
+        }
+
+        if (one instanceof Villager) {
+
+            Villager villagerOne = (Villager) one;
+            Villager villagerTwo = (Villager) two;
+
+            if (villagerOne.getProfession() != villagerTwo.getProfession())
+                return false;
+        }
+
+        if (one instanceof Tameable) {
+            Tameable tameableOne = (Tameable) one;
+            Tameable tameableTwo = (Tameable) two;
+
+            if (tameableOne.isTamed() != tameableTwo.isTamed())
+                return false;
+
+            if (tameableOne.getOwner().getUniqueId() != tameableTwo.getOwner().getUniqueId())
+                return false;
+        }
+
+        if (one instanceof Sheep) {
+            Sheep sheepOne = (Sheep) one;
+            Sheep sheepTwo = (Sheep) two;
+
+            if (sheepOne.isSheared() != sheepTwo.isSheared())
+                return false;
+
+            if (sheepOne.getColor() != sheepTwo.getColor())
+                return false;
+        }
+
+        if (one instanceof Skeleton) {
+            Skeleton skeletonOne = (Skeleton) one;
+            Skeleton skeletonTwo = (Skeleton) two;
+
+            if (skeletonOne.getSkeletonType() != skeletonTwo.getSkeletonType())
+                return false;
+        }
+
+
+        if (one instanceof LivingEntity) {
+            LivingEntity livingOne = (LivingEntity) one;
+            LivingEntity livingTwo = (LivingEntity) two;
+
+            EntityEquipment oneEquipment = livingOne.getEquipment();
+            EntityEquipment twoEquipment = livingTwo.getEquipment();
+
+            if (!oneEquipment.getHelmet().isSimilar(twoEquipment.getHelmet()))
+                return false;
+
+            if (!oneEquipment.getChestplate().isSimilar(twoEquipment.getChestplate()))
+                return false;
+
+            if (!oneEquipment.getLeggings().isSimilar(twoEquipment.getLeggings()))
+                return false;
+
+            if (!oneEquipment.getBoots().isSimilar(twoEquipment.getBoots()))
+                return false;
+
+            if (!oneEquipment.getItemInHand().isSimilar(twoEquipment.getItemInHand()))
+                return false;
+        }
+
+        return true;
+    }
 }

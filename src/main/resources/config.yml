@@ -13,6 +13,10 @@ entities:
     #Without these, if you don't set them below in EVERY SINGLE entity type with stacking enabled, the plugin will
     #more than likely error out.
     stacking:
+      #Configure if to play the death animation or not when an entity is killed in a stack.
+      death-animation: false
+      #Limits the amount of stacked entities to remove from a stack when a whole stack is killed, 0 is uncapped.
+      stack-death-limit: 50
       #The name of the stack, "type" is the entity type name and "count" is the current count.
       stack-name: "&a&l{type} &ax &a&n{count}"
       #The limit of how many times this entity can stack.

@@ -78,22 +78,36 @@ public class EntityTypeSettings {
         private int radius;
         private boolean multiplyDrops;
         private boolean stackDiverse;
+        private boolean doDeathAnimation;
         private List<EntityDamageEvent.DamageCause> stackDeathCauses;
         private String stackNameFormat;
+        private int stackDeathLimit;
 
         public Stacking(int limit,
                         int radius,
                         boolean multiplyDrops,
                         boolean mergeDiverse,
+                        boolean doDeathAnimation,
                         List<EntityDamageEvent.DamageCause> stackDeathCauses,
-                        String stackNameFormat
+                        String stackNameFormat,
+                        int stackDeathLimit
         ) {
             this.limit = limit;
             this.radius = radius;
             this.multiplyDrops = multiplyDrops;
             this.stackDiverse = mergeDiverse;
+            this.doDeathAnimation = doDeathAnimation;
             this.stackDeathCauses = stackDeathCauses;
             this.stackNameFormat = stackNameFormat;
+            this.stackDeathLimit = stackDeathLimit;
+        }
+
+        public int getStackDeathLimit() {
+            return stackDeathLimit;
+        }
+
+        public boolean doDeathAnimation() {
+            return doDeathAnimation;
         }
 
         public int getLimit() {

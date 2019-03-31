@@ -36,6 +36,7 @@ public final class Stacker {
 			//Attempts is for failed attempts to find valid entities to prevent server freezing.
 			int attempts = 0;
 			for (int i = 0; i < count; i++) {
+
 				World world = worlds.get(random.nextInt(worlds.size()));
 				List<LivingEntity> livingEntities = world.getLivingEntities();
 				if (livingEntities.isEmpty())

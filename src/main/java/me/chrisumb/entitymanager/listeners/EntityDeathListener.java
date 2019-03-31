@@ -8,6 +8,7 @@ import me.chrisumb.entitymanager.util.Stacker;
 import org.bukkit.Location;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -60,22 +61,23 @@ public class EntityDeathListener implements Listener {
         if (count <= 0)
             return;
 
-
         Location loc = entity.getLocation();
         List<ItemStack> drops = new MergingItemStackList();
 
         int experience = 0;
 
+        Object handle = EntityUtil.getEntityHandle(entity);
+
+        final Player killer = entity.getKiller();
         for (int i = 0; i < count; i++) {
-            drops.addAll(EntityUtil.getItemDrops(entity));
+            EntityUtil.getItemDrops(handle, killer, drops);
             experience += EntityUtil.getExperienceDrops(entity);
         }
 
         ItemStackUtil.dropAll(drops, entity.getLocation(), false, true);
 
-        if(experience> 0) {
-            ExperienceOrb spawn = loc.getWorld().spawn(loc, ExperienceOrb.class);
-            spawn.setExperience(experience);
+        if(experience > 0) {
+            loc.getWorld().spawn(loc, ExperienceOrb.class).setExperience(experience);
         }
     }
 }

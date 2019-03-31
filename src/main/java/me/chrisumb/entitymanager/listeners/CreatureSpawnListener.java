@@ -7,12 +7,12 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 
 public class CreatureSpawnListener implements Listener {
 
-    @EventHandler
-    public void onCreatureSpawn(CreatureSpawnEvent event) {
-        if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.CUSTOM)
-            return;
+	@EventHandler
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.CUSTOM)
+			return;
 
-        Stacker.attemptStackEntity(event.getEntity());
-    }
+		Stacker.attemptStackEntity(event.getEntity());
+	}
 
 }

@@ -11,53 +11,52 @@ import java.util.List;
 
 public final class EntityTypeSettingsLoader {
 
-    private EntityTypeSettingsLoader() {
-    }
+	private EntityTypeSettingsLoader() {
+	}
 
-    public static EntityTypeSettings loadFrom(String entityTypeName) {
-        FileConfiguration cfg = EntityManagerPlugin.getInstance().getConfig();
-        ConfigurationSection section = cfg.getConfigurationSection("entities." + entityTypeName);
+	public static EntityTypeSettings loadFrom(String entityTypeName) {
+		FileConfiguration cfg = EntityManagerPlugin.getInstance().getConfig();
+		ConfigurationSection section = cfg.getConfigurationSection("entities." + entityTypeName);
 
-        if(section == null)
-            return null;
+		if (section == null)
+			return null;
 
-        if (!entityTypeName.equalsIgnoreCase("default")) {
-            ConfigurationSection defaultSection = cfg.getConfigurationSection("entities.default");
+		if (!entityTypeName.equalsIgnoreCase("default")) {
+			ConfigurationSection defaultSection = cfg.getConfigurationSection("entities.default");
 
-            for (String key : defaultSection.getKeys(false)) {
-                section.addDefault(key, defaultSection.get(key));
-            }
-        }
+			for (String key : defaultSection.getKeys(false)) {
+				section.addDefault(key, defaultSection.get(key));
+			}
+		}
 
-        ConfigurationSection stackingSection = section.getConfigurationSection("stacking");
+		ConfigurationSection stackingSection = section.getConfigurationSection("stacking");
 
-        boolean stackingExempt = false;
-        if (stackingSection.contains("exempt") && stackingSection.getBoolean("exempt")) {
-            stackingExempt = stackingSection.getBoolean("exempt");
-        }
-        EntityTypeSettings settings = new EntityTypeSettings();
+		boolean stackingExempt = false;
+		if (stackingSection.contains("exempt") && stackingSection.getBoolean("exempt")) {
+			stackingExempt = stackingSection.getBoolean("exempt");
+		}
+		EntityTypeSettings settings = new EntityTypeSettings();
 
-        if(!stackingExempt) {
+		if (!stackingExempt) {
+			int limit = stackingSection.getInt("limit");
+			int radius = stackingSection.getInt("radius");
+			boolean multiplyDrops = stackingSection.getBoolean("multiply-drops");
+			boolean stackDiverse = stackingSection.getBoolean("stack-diverse");
+			List<EntityDamageEvent.DamageCause> stackDeathCauses = new ArrayList<>();
+			String stackNameFormat = stackingSection.getString("stack-name");
 
-            int limit = stackingSection.getInt("limit");
-            int radius = stackingSection.getInt("radius");
-            boolean multiplyDrops = stackingSection.getBoolean("multiply-drops");
-            boolean stackDiverse = stackingSection.getBoolean("stack-diverse");
-            List<EntityDamageEvent.DamageCause> stackDeathCauses = new ArrayList<>();
-            String stackNameFormat = stackingSection.getString("stack-name");
+			if (stackingSection.contains("stack-death")) {
+				List<String> damageCauseNames = stackingSection.getStringList("stack-death");
+				for (String name : damageCauseNames) {
+					stackDeathCauses.add(EntityDamageEvent.DamageCause.valueOf(name));
+				}
+			}
 
-            if (stackingSection.contains("stack-death")) {
-                List<String> damageCauseNames = stackingSection.getStringList("stack-death");
-                for (String name : damageCauseNames) {
-                    stackDeathCauses.add(EntityDamageEvent.DamageCause.valueOf(name));
-                }
-            }
+			settings.setStacking(settings.new Stacking(limit, radius, multiplyDrops, stackDiverse, stackDeathCauses, stackNameFormat));
+		}
 
-            settings.setStacking(settings.new Stacking(limit, radius, multiplyDrops, stackDiverse, stackDeathCauses, stackNameFormat));
-        }
-
-        return settings;
-    }
+		return settings;
+	}
 
 
 }

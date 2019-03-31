@@ -11,7 +11,7 @@ import java.util.Map;
 public class EntityTypeSettings {
 
     private static Map<EntityType, EntityTypeSettings> settingsCache = new HashMap<>();
-    private static EntityTypeSettings defaultEntityTypeSettings = EntityTypeSettingsLoader.loadFrom("default");
+    private static EntityTypeSettings defaultEntityTypeSettings;
 
     private Stacking stacking;
     private CustomDrops customDrops;
@@ -47,7 +47,7 @@ public class EntityTypeSettings {
     }
 
     public static EntityTypeSettings getSettings(EntityType type) {
-        if (!type.isSpawnable() || type == EntityType.PLAYER || !type.isAlive())
+        if (!type.isSpawnable() || !type.isAlive())
             return null;
 
         if (!settingsCache.containsKey(type))
@@ -57,12 +57,15 @@ public class EntityTypeSettings {
     }
 
     public static void loadAll() {
+        settingsCache.clear();
+        defaultEntityTypeSettings = EntityTypeSettingsLoader.loadFrom("default");
+
         for (EntityType type : EntityType.values()) {
             EntityTypeSettings settings = EntityTypeSettingsLoader.loadFrom(type.name());
-            if (settings == null || !type.isSpawnable() || type == EntityType.PLAYER || !type.isAlive())
+            if (settings == null || !type.isSpawnable() || !type.isAlive())
                 continue;
 
-            EntityTypeSettings.registerSettings(type, settings);
+            registerSettings(type, settings);
         }
     }
 

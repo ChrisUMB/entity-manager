@@ -5,9 +5,16 @@ import org.bukkit.entity.Entity;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 
+import javax.swing.text.html.Option;
+import java.util.OptionalInt;
+
 public final class EntityData {
 
     private EntityData() {
+    }
+
+    public static void remove(Entity entity, String key) {
+        entity.removeMetadata(key, EntityManagerPlugin.getInstance());
     }
 
     public static void set(Entity entity, String key, Object value) {
@@ -24,5 +31,10 @@ public final class EntityData {
 
     public static int getInt(Entity entity, String key) {
         return (int) get(entity, key);
+    }
+
+    public static OptionalInt getOptionalInt(Entity entity, String key) {
+        final Object value = get(entity, key);
+        return value == null ? OptionalInt.empty() : OptionalInt.of((Integer) value);
     }
 }

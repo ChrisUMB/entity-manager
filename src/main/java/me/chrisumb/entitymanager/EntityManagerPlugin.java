@@ -19,8 +19,18 @@ public class EntityManagerPlugin extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
         registerListeners();
+        registerCommands();
         EntityTypeSettings.loadAll();
+        Stacker.startStackTask();
+    }
 
+    private void registerListeners() {
+        final PluginManager pluginManager = getServer().getPluginManager();
+        pluginManager.registerEvents(new CreatureSpawnListener(), this);
+        pluginManager.registerEvents(new EntityDeathListener(), this);
+    }
+
+    private void registerCommands() {
         ParameterFilters.register(
                 EntityManagerCommand.Stackable.class,
                 EntityType.class,
@@ -35,13 +45,6 @@ public class EntityManagerPlugin extends JavaPlugin {
         );
 
         Commands.registerCommands(new EntityManagerCommand());
-        Stacker.startStackTask();
-    }
-
-    private void registerListeners() {
-        final PluginManager pluginManager = getServer().getPluginManager();
-        pluginManager.registerEvents(new CreatureSpawnListener(), this);
-        pluginManager.registerEvents(new EntityDeathListener(), this);
     }
 
     public static EntityManagerPlugin getInstance() {

@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static me.chrisumb.entitymanager.util.ReflectionUtil.*;
@@ -18,13 +19,15 @@ public final class EntityUtil {
 
     private static Method regenerateEquipmentEnchantsMethod = null;
     private static Method regenerateEquipmentMethod = null;
+    private static Method sheepGenerateColorMethod = null;
     private static Method getCombatTrackerMethod = null;
     private static Method getDamageScalerMethod = null;
+    private static Method getBukkitEntityMethod = null;
     private static Method dropDeathLootMethod = null;
     private static Method dropEquipmentMethod = null;
+    private static Method sheepSetColorMethod = null;
     private static Method getExpRewardMethod = null;
     private static Method getRareDropMethod = null;
-    private static Method getBukkitEntityMethod = null;
     private static Method getHandleMethod = null;
     private static Method addDropsMethod = null;
 
@@ -46,10 +49,12 @@ public final class EntityUtil {
 
             regenerateEquipmentEnchantsMethod = getMethodIfValid(false, "EntityInsentient", "b", scalerClass);
             regenerateEquipmentMethod = getMethodIfValid(false, "EntityInsentient", "a", scalerClass);
+            sheepGenerateColorMethod = getMethodIfValid(false, "EntitySheep", "a", Random.class);
             getCombatTrackerMethod = getMethodIfValid(false, "EntityLiving", "getCombatTracker");
             getBukkitEntityMethod = getMethodIfValid(false, "Entity", "getBukkitEntity");
             dropDeathLootMethod = getMethodIfValid(false, "EntityLiving", "dropDeathLoot", boolean.class, int.class);
             dropEquipmentMethod = getMethodIfValid(false, "EntityLiving", "dropEquipment", boolean.class, int.class);
+            sheepSetColorMethod = getMethodIfValid(false, "EntitySheep", "setColor", getVanillaClass("EnumColor"));
             getExpRewardMethod = getMethodIfValid(false, "EntityLiving", "getExpReward");
             getRareDropMethod = getMethodIfValid(false, "EntityLiving", "getRareDrop");
             getHandleMethod = getMethodIfValid(true, "entity.CraftLivingEntity", "getHandle");
@@ -61,6 +66,8 @@ public final class EntityUtil {
             killerField = getFieldIfValid(false, "EntityLiving", "killer");
             worldField = getFieldIfValid(false, "Entity", "world");
             dropsField = getFieldIfValid(false, "EntityLiving", "drops");
+
+            //this.setColor(a(this.world.random));
 
             if (version.isBefore(NMSVersion.v1_9_R1)) {
                 getDamageScalerMethod = getMethodIfValid(false, "World", "E", blockPosition);
@@ -117,6 +124,13 @@ public final class EntityUtil {
         try {
             Object craftEntity = getBukkitEntityMethod.invoke(entityHandle);
             LivingEntity livingEntity = (LivingEntity) craftEntity;
+            if(livingEntity instanceof Sheep) {
+                sheepSetColorMethod.invoke(entityHandle, sheepGenerateColorMethod.invoke(entityHandle, ThreadLocalRandom.current()));
+            }
+            final String typeName = livingEntity.getType().name();
+            if (!typeName.contains("SKELETON") && !typeName.contains("ZOMBIE"))
+                return;
+
             livingEntity.getEquipment().clear();
 
             Object world = worldField.get(entityHandle);
@@ -168,10 +182,7 @@ public final class EntityUtil {
                 addDropsMethod.invoke(entityHandle, true, lootingLevel, lastDamageSource);
             } else {
                 dropDeathLootMethod.invoke(entityHandle, true, lootingLevel);
-                EntityType type = livingEntity.getType();
-
-                if (type.name().contains("SKELETON") || type.name().contains("ZOMBIE"))
-                    dropEquipmentMethod.invoke(entityHandle, true, lootingLevel);
+                dropEquipmentMethod.invoke(entityHandle, true, lootingLevel);
             }
 
             if (getRareDropMethod != null && random.nextFloat() < 0.025F + (float) lootingLevel * 0.01F)

@@ -1,58 +1,58 @@
 package me.chrisumb.entitymanager.module.drops;
 
-import blue.sparse.bshade.util.ItemStackUtil;
 import me.chrisumb.entitymanager.config.EntityTypeSettings;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class CustomDrop {
 
-    private ItemStack item;
-    private double dropChance;
-    private int amountMin;
-    private int amountMax;
+	private ItemStack item;
+	private double dropChance;
+	private int amountMin;
+	private int amountMax;
 
-    public CustomDrop(ItemStack item, double dropChance, int amountMin, int amountMax) {
-        this.item = item;
-        this.dropChance = dropChance;
-        this.amountMin = amountMin;
-        this.amountMax = amountMax;
-    }
+	public CustomDrop(ItemStack item, double dropChance, int amountMin, int amountMax) {
+		this.item = item;
+		this.dropChance = dropChance;
+		this.amountMin = Math.max(amountMin, 1);
+		this.amountMax = Math.max(amountMin, amountMax);
+	}
 
-    public ItemStack getDrop() {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
+	public static List<ItemStack> generateCustomDrops(LivingEntity livingEntity) {
+		EntityTypeSettings settings = EntityTypeSettings.getSettings(livingEntity.getType());
+		if(settings == null)
+			return Collections.emptyList();
 
-        if (random.nextDouble() > dropChance)
-            return null;
+		EntityTypeSettings.CustomDrops dropsSettings = settings.getCustomDrops();
+		if(dropsSettings == null)
+			return Collections.emptyList();
 
-        ItemStack clone = item.clone();
-        clone.setAmount(random.nextInt(amountMin, amountMax + 1));
-        return clone;
-    }
+		List<ItemStack> result = new ArrayList<>();
+		List<CustomDrop> customDrops = dropsSettings.getItems();
 
-    public static List<ItemStack> generateCustomDrops(LivingEntity livingEntity) {
-        List<ItemStack> items = new ArrayList<>();
+		for (CustomDrop drop : customDrops) {
+			ItemStack item = drop.getDrop();
+			if (item != null)
+				result.add(item);
+		}
 
-        EntityTypeSettings settings = EntityTypeSettings.getSettings(livingEntity.getType());
-        if (settings != null) {
-            EntityTypeSettings.CustomDrops dropsSettings = settings.getCustomDrops();
-            if (dropsSettings != null) {
-                List<CustomDrop> customDrops = dropsSettings.getItems();
+		return result;
+	}
 
-                for (int i = 0; i < customDrops.size(); i++) {
-                    CustomDrop drop = customDrops.get(ThreadLocalRandom.current().nextInt(0, customDrops.size()));
-                    ItemStack item = drop.getDrop();
-                    if (item != null) {
-                        items.add(item);
-                    }
-                }
-            }
-        }
+	public ItemStack getDrop() {
+		ThreadLocalRandom random = ThreadLocalRandom.current();
 
-        return items;
-    }
+		if (random.nextDouble() > dropChance)
+			return null;
+
+		ItemStack clone = item.clone();
+		clone.setAmount(random.nextInt(amountMin, amountMax + 1));
+		return clone;
+	}
 }

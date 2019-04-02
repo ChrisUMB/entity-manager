@@ -7,11 +7,13 @@ import me.chrisumb.entitymanager.module.drops.CustomDrop;
 import me.chrisumb.entitymanager.util.EntityUtil;
 import me.chrisumb.entitymanager.module.stacking.Stacker;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -20,10 +22,11 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class StackEntityDeathListener implements Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof LivingEntity))
             return;
@@ -47,9 +50,6 @@ public class StackEntityDeathListener implements Listener {
         if (entity.getHealth() > event.getFinalDamage())
             return;
 
-        if (stackingSettings.doDeathAnimation())
-            return;
-
         int count = Stacker.getStackCount(entity);
 
         if (count == 1)
@@ -57,23 +57,11 @@ public class StackEntityDeathListener implements Listener {
 
         entity.setLastDamageCause(event);
 
-        if (!kill(entity, killer, false)) {
+        final boolean doDeathAnimation = stackingSettings.doDeathAnimation();
+        if (!kill(entity, killer, doDeathAnimation) && !doDeathAnimation) {
             event.setDamage(0.0);
             entity.setHealth(entity.getMaxHealth());
         }
-    }
-
-    @EventHandler
-    public void onDeath(EntityDeathEvent event) {
-        EntityTypeSettings.Stacking stackingSettings = getStackingSettings(event.getEntity());
-
-        if (stackingSettings == null)
-            return;
-
-        if (!stackingSettings.doDeathAnimation())
-            return;
-
-        kill(event.getEntity(), event.getEntity().getKiller(), true);
     }
 
     private boolean kill(LivingEntity entity, Player killer, boolean didEntityDie) {
@@ -83,11 +71,6 @@ public class StackEntityDeathListener implements Listener {
             return false;
 
         int count = Stacker.getStackCount(entity);
-
-        if (didEntityDie && count <= 1 && entity.getCustomName() != null) {
-            entity.setCustomName(null);
-            entity.setCustomNameVisible(false);
-        }
 
         EntityDamageEvent.DamageCause damageCause = entity.getLastDamageCause().getCause();
         int maxToKill = stackingSettings.getDamageCauseDeathCount(damageCause);
@@ -111,10 +94,13 @@ public class StackEntityDeathListener implements Listener {
             }
         }
 
-        if (count > 1) {
+        if (count >= 1) {
             LivingEntity newEntity = didEntityDie ? (LivingEntity) entity.getWorld().spawnEntity(entity.getLocation(), entity.getType()) : entity;
             EntityUtil.regenerateEquipment(EntityUtil.getEntityHandle(newEntity));
             Stacker.setStackCount(newEntity, count);
+        } else if (didEntityDie) {
+            entity.setCustomName(null);
+            entity.setCustomNameVisible(false);
         }
 
         return count <= 0;
@@ -140,7 +126,10 @@ public class StackEntityDeathListener implements Listener {
         Object handle = EntityUtil.getEntityHandle(entity);
 
         for (int i = 0; i < count; i++) {
-            drops.addAll(EntityUtil.getItemDrops(handle, killer, new ArrayList<>()));
+            final List<ItemStack> newDrops = EntityUtil.getItemDrops(handle, killer, new ArrayList<>());
+            newDrops.stream()
+                    .filter(it -> it != null && it.getType() != Material.AIR && it.getAmount() > 0)
+                    .collect(Collectors.toCollection(() -> drops));
             experience += EntityUtil.getExperienceDrops(entity, killer);
             EntityUtil.regenerateEquipment(handle);
         }

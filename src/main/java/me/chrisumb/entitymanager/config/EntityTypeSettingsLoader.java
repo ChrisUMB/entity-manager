@@ -15,157 +15,209 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public final class EntityTypeSettingsLoader {
 
-    private EntityTypeSettingsLoader() {
-    }
+	private EntityTypeSettingsLoader() {
+	}
 
-    public static EntityTypeSettings loadFrom(String entityTypeName) {
-        FileConfiguration cfg = EntityManagerPlugin.getInstance().getConfig();
-        ConfigurationSection section = cfg.getConfigurationSection("entities." + entityTypeName);
+	public static EntityTypeSettings loadFrom(String entityTypeName) {
+		FileConfiguration cfg = EntityManagerPlugin.getInstance().getConfig();
+		ConfigurationSection section = cfg.getConfigurationSection("entities." + entityTypeName);
 
-        if (section == null)
-            return null;
+		if (section == null)
+			return null;
 
-        if (!entityTypeName.equalsIgnoreCase("default")) {
-            ConfigurationSection defaultSection = cfg.getConfigurationSection("entities.default");
+		ConfigurationSection defaultSection = cfg.getConfigurationSection("entities.default");
+		EntityTypeSettings settings = new EntityTypeSettings();
 
-            for (String key : defaultSection.getKeys(false))
-                section.addDefault(key, defaultSection.get(key));
-        }
+		loadStacking(entityTypeName, section, defaultSection, settings);
+		loadCustomDrops(entityTypeName, section, defaultSection, settings);
 
-        ConfigurationSection stackingSection = section.getConfigurationSection("stacking");
+		return settings;
+	}
 
-        boolean stackingExempt = false;
-        if (stackingSection.contains("exempt") && stackingSection.getBoolean("exempt")) {
-            stackingExempt = stackingSection.getBoolean("exempt");
-        }
-        EntityTypeSettings settings = new EntityTypeSettings();
+	private static void loadCustomDrops(String entityTypeName, ConfigurationSection section, ConfigurationSection defaultSection, EntityTypeSettings settings) {
+		ConfigurationSection dropsSection = section.getConfigurationSection("custom-drops");
+		Defaults defaults = new Defaults(dropsSection, null);
+		if (!entityTypeName.equalsIgnoreCase("default"))
+			defaults.b = defaultSection.getConfigurationSection("custom-drops");
 
-        if (!stackingExempt) {
-            int limit = stackingSection.getInt("limit");
-            int radius = stackingSection.getInt("radius");
-            boolean multiplyDrops = stackingSection.getBoolean("multiply-drops");
-            boolean stackDiverse = stackingSection.getBoolean("stack-diverse");
-            boolean doDeathAnimation = stackingSection.getBoolean("death-animation");
-            String stackNameFormat = stackingSection.getString("stack-name");
+		if(defaults.a == null && defaults.b == null)
+			return;
 
-            Map<EntityDamageEvent.DamageCause, Integer> deathCauseCounts = new HashMap<>();
-            List<CreatureSpawnEvent.SpawnReason> invalidSpawnReasons = new ArrayList<>();
-            int defaultDeathCount = 1;
+		List<CustomDrop> drops = new ArrayList<>();
 
-            if(stackingSection.contains("invalid-spawn-reasons")) {
-                List<String> invalidSpawnReasonsNames = stackingSection.getStringList("invalid-spawn-reasons");
+//		List<Map<?, ?>> items = dropsSection.getMapList("items");
+		List<Map<?, ?>> items = defaults.get("items", ConfigurationSection::getMapList);
+		for (Map<?, ?> map : items) {
+			ConfigurationSection itemSection = new YamlConfiguration().createSection("_", map);
+			ItemStack item = parseItem(itemSection);
+			double chance = itemSection.getDouble("chance");
 
-                for(String key : invalidSpawnReasonsNames) {
-                    try {
-                        invalidSpawnReasons.add(CreatureSpawnEvent.SpawnReason.valueOf(key));
-                    }catch(IllegalArgumentException ignored){}
-                }
-            }
+			int amountMin = itemSection.getInt("amount.min");
+			int amountMax = itemSection.getInt("amount.max");
+			drops.add(new CustomDrop(item, chance, amountMin, amountMax));
+		}
 
-            if(stackingSection.contains("stack-death-count")) {
-                ConfigurationSection deathCounts = stackingSection.getConfigurationSection("stack-death-count");
-                if(deathCounts.contains("default"))
-                    defaultDeathCount = Math.min(0, deathCounts.getInt("default"));
+		settings.setCustomDrops(settings.new CustomDrops(drops));
+	}
 
-                Set<String> keys = deathCounts.getKeys(false);
-                for(String key : keys) {
-                    try {
-                        deathCauseCounts.put(EntityDamageEvent.DamageCause.valueOf(key), deathCounts.getInt(key));
-                    }catch (IllegalArgumentException ignored) {}
-                }
-            }
+	private static void loadStacking(String entityTypeName, ConfigurationSection section, ConfigurationSection defaultSection, EntityTypeSettings settings) {
+		ConfigurationSection stackingSection = section.getConfigurationSection("stacking");
+		Defaults defaults = new Defaults(stackingSection, null);
+		if (!entityTypeName.equalsIgnoreCase("default"))
+			defaults.b = defaultSection.getConfigurationSection("stacking");
 
-            settings.setStacking(
-                    settings.new Stacking(
-                            limit,
-                            radius,
-                            multiplyDrops,
-                            stackDiverse,
-                            doDeathAnimation,
-                            defaultDeathCount,
-                            deathCauseCounts,
-                            stackNameFormat,
-                            invalidSpawnReasons
-                    )
-            );
-        }
+		if(defaults.a == null && defaults.b == null)
+			return;
 
-        if(section.contains("custom-drops")) {
-            List<CustomDrop> drops = new ArrayList<>();
-            ConfigurationSection dropsSection = section.getConfigurationSection("custom-drops");
+		if (defaults.contains("exempt") && defaults.get("exempt", ConfigurationSection::getBoolean))
+			return;
 
-            List<Map<?, ?>> items = dropsSection.getMapList("items");
-            for (Map<?, ?> map : items) {
-                ConfigurationSection itemSection = new YamlConfiguration().createSection("_", map);
-                ItemStack item = parseItem(itemSection);
-                double chance = itemSection.getDouble("chance");
-                int amountMin = itemSection.getInt("amount.min");
-                int amountMax = itemSection.getInt("amount.max");
-                drops.add(new CustomDrop(item, chance, amountMin, amountMax));
-            }
+		int limit = defaults.get("limit", ConfigurationSection::getInt);
+		int radius = defaults.get("radius", ConfigurationSection::getInt);
+		boolean multiplyDrops = defaults.get("multiply-drops", ConfigurationSection::getBoolean);
+		boolean stackDiverse = defaults.get("stack-diverse", ConfigurationSection::getBoolean);
+		boolean doDeathAnimation = defaults.get("death-animation", ConfigurationSection::getBoolean);
+		String stackNameFormat = defaults.get("stack-name", ConfigurationSection::getString);
 
-            settings.setCustomDrops(settings.new CustomDrops(drops));
-        }
+		Map<EntityDamageEvent.DamageCause, Integer> deathCauseCounts = new HashMap<>();
+		List<CreatureSpawnEvent.SpawnReason> invalidSpawnReasons = new ArrayList<>();
 
-        return settings;
-    }
+		defaults.optional("invalid-spawn-reasons", ConfigurationSection::getStringList)
+				.map(it -> it.stream().map(key -> parse(CreatureSpawnEvent.SpawnReason.class, key)))
+				.ifPresent(it -> it.collect(Collectors.toCollection(() -> invalidSpawnReasons)));
 
-    private static ItemStack parseItem(ConfigurationSection section) {
-        Material type = Material.matchMaterial(section.getString("type"));
-        int amount = section.isSet("amount") ? section.getInt("amount") : 1;
-        byte data = section.isSet("data") ? (byte) section.getInt("data") : 0;
-        String name = section.isSet("name") ? section.getString("name") : null;
-        List<String> displayLore = section.isSet("lore") ? section.getStringList("lore") : Collections.emptyList();
-        List<String> flags = section.isSet("flags") ? section.getStringList("flags") : Collections.emptyList();
-        Map<Enchantment, Integer> enchants = section.isSet("enchantments")
-                ? parseEnchants(section.getConfigurationSection("enchantments")) : new HashMap<>();
+//		List<String> invalidSpawnReasonsNames = defaults.get("invalid-spawn-reasons", ConfigurationSection::getStringList);
+//		if (invalidSpawnReasonsNames != null) {
+//			for (String key : invalidSpawnReasonsNames) {
+//				invalidSpawnReasons.add(parse(CreatureSpawnEvent.SpawnReason.class, key));
+//			}
+//		}
 
-        ItemStack item = new ItemStack(type, amount, data);
-        ItemMeta meta = item.getItemMeta();
+		int defaultDeathCount = 1;
 
-        if(name != null)
-            meta.setDisplayName(StringUtil.color(name));
+		ConfigurationSection deathCounts = defaults.get("stack-death-count", ConfigurationSection::getConfigurationSection);
+		if (deathCounts != null) {
+			if (deathCounts.contains("default"))
+				defaultDeathCount = Math.min(0, deathCounts.getInt("default"));
 
-        List<String> lore = new ArrayList<>();
+			Set<String> keys = deathCounts.getKeys(false);
+			for (String key : keys) {
+				deathCauseCounts.put(parse(EntityDamageEvent.DamageCause.class, key), deathCounts.getInt(key));
+			}
+		}
 
-        for(String s : displayLore)
-            lore.add(StringUtil.color(s));
+		settings.setStacking(
+				settings.new Stacking(
+						limit,
+						radius,
+						multiplyDrops,
+						stackDiverse,
+						doDeathAnimation,
+						defaultDeathCount,
+						deathCauseCounts,
+						stackNameFormat,
+						invalidSpawnReasons
+				)
+		);
+	}
 
-        meta.setLore(lore);
+	private static <T extends Enum<T>> T parse(Class<T> clazz, String name) {
+		try {
+			return Enum.valueOf(clazz, name);
+		}catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
 
-        if(flags.contains("glowing") && !meta.hasEnchants()) {
-            meta.addEnchant(Enchantment.LURE, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        }
+	private static ItemStack parseItem(ConfigurationSection section) {
+		Material type = Material.matchMaterial(section.getString("type"));
+		int amount = section.isSet("amount") ? section.getInt("amount") : 1;
+		byte data = section.isSet("data") ? (byte) section.getInt("data") : 0;
+		String name = section.isSet("name") ? section.getString("name") : null;
+		List<String> displayLore = section.isSet("lore") ? section.getStringList("lore") : Collections.emptyList();
+		List<String> flags = section.isSet("flags") ? section.getStringList("flags") : Collections.emptyList();
+		Map<Enchantment, Integer> enchants = section.isSet("enchantments")
+				? parseEnchants(section.getConfigurationSection("enchantments")) : new HashMap<>();
 
-        item.setItemMeta(meta);
+		ItemStack item = new ItemStack(type, amount, data);
+		ItemMeta meta = item.getItemMeta();
 
-        for(Map.Entry<Enchantment, Integer> entry : enchants.entrySet())
-            item.addUnsafeEnchantment(entry.getKey(), entry.getValue());
+		if (name != null)
+			meta.setDisplayName(StringUtil.color(name));
 
-        return item;
-    }
+		List<String> lore = new ArrayList<>();
 
-    private static Map<Enchantment, Integer> parseEnchants(ConfigurationSection enchantsSection) {
-        final Map<Enchantment, Integer> result = new HashMap<>();
+		for (String s : displayLore)
+			lore.add(StringUtil.color(s));
 
-        Set<String> keys = enchantsSection.getKeys(false);
+		meta.setLore(lore);
 
-        for(String enchantName : keys) {
+		if (flags.contains("glowing") && !meta.hasEnchants()) {
+			meta.addEnchant(Enchantment.LURE, 1, true);
+			meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+		}
 
-            Enchantment enchant = Enchantment.getByName(enchantName);
-            if(enchant == null)
-                continue;
+		item.setItemMeta(meta);
 
-            int level = enchantsSection.getInt(enchantName);
-            result.put(enchant, level);
-        }
+		for (Map.Entry<Enchantment, Integer> entry : enchants.entrySet())
+			item.addUnsafeEnchantment(entry.getKey(), entry.getValue());
 
-        return result;
-    }
+		return item;
+	}
+
+	private static Map<Enchantment, Integer> parseEnchants(ConfigurationSection enchantsSection) {
+		final Map<Enchantment, Integer> result = new HashMap<>();
+
+		Set<String> keys = enchantsSection.getKeys(false);
+
+		for (String enchantName : keys) {
+
+			Enchantment enchant = Enchantment.getByName(enchantName);
+			if (enchant == null)
+				continue;
+
+			int level = enchantsSection.getInt(enchantName);
+			result.put(enchant, level);
+		}
+
+		return result;
+	}
+
+	private static class Defaults {
+		public ConfigurationSection b;
+		private ConfigurationSection a;
+
+		public Defaults(ConfigurationSection a, ConfigurationSection b) {
+			this.a = a;
+			this.b = b;
+		}
+
+		public boolean contains(String name) {
+			return (a != null && a.contains(name)) || (b != null && b.contains(name));
+		}
+
+		public <T> T get(String name, BiFunction<ConfigurationSection, String, T> function) {
+			if (a.contains(name)) {
+				final T valueA = function.apply(a, name);
+				if (valueA != null)
+					return valueA;
+			}
+
+			if (b != null && b.contains(name))
+				return function.apply(b, name);
+
+			return null;
+		}
+
+		public <T> Optional<T> optional(String name, BiFunction<ConfigurationSection, String, T> function) {
+			return Optional.ofNullable(get(name, function));
+		}
+	}
 
 
 }

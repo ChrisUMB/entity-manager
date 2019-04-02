@@ -141,7 +141,6 @@ public class StackEntityDeathListener implements Listener {
 
         for (int i = 0; i < count; i++) {
             drops.addAll(EntityUtil.getItemDrops(handle, killer, new ArrayList<>()));
-            drops.addAll(CustomDrop.generateCustomDrops(entity));
             experience += EntityUtil.getExperienceDrops(entity, killer);
             EntityUtil.regenerateEquipment(handle);
         }

@@ -7,6 +7,7 @@ import blue.sparse.bshade.util.StringUtil;
 import me.chrisumb.entitymanager.EntityManagerPlugin;
 import me.chrisumb.entitymanager.config.EntityTypeSettings;
 import me.chrisumb.entitymanager.module.stacking.Stacker;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -32,7 +33,7 @@ public class EntityManagerCommand implements CommandGroup {
 	}
 
 	public void reload(
-			CommandContext<Player> context
+			CommandContext context
 	) {
 		if (!context.sender.hasPermission("entitymanager.admin"))
 			return;

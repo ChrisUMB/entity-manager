@@ -126,6 +126,7 @@ public final class EntityUtil {
 
             regenerateEquipmentMethod.invoke(entityHandle, damageScaler);
             regenerateEquipmentEnchantsMethod.invoke(entityHandle, damageScaler);
+
         } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
             e.printStackTrace();
         }

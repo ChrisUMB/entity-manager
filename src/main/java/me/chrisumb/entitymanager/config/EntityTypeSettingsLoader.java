@@ -31,9 +31,8 @@ public final class EntityTypeSettingsLoader {
         if (!entityTypeName.equalsIgnoreCase("default")) {
             ConfigurationSection defaultSection = cfg.getConfigurationSection("entities.default");
 
-            for (String key : defaultSection.getKeys(false)) {
+            for (String key : defaultSection.getKeys(false))
                 section.addDefault(key, defaultSection.get(key));
-            }
         }
 
         ConfigurationSection stackingSection = section.getConfigurationSection("stacking");

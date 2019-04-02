@@ -29,8 +29,9 @@ public class CustomDrop {
         if (random.nextDouble() > dropChance)
             return null;
 
-        item.setAmount(random.nextInt(amountMin, amountMax + 1));
-        return item;
+        ItemStack clone = item.clone();
+        clone.setAmount(random.nextInt(amountMin, amountMax + 1));
+        return clone;
     }
 
     public static List<ItemStack> generateCustomDrops(LivingEntity livingEntity) {

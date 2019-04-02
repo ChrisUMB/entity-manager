@@ -3,16 +3,26 @@ package me.chrisumb.entitymanager;
 import blue.sparse.bshade.command.Commands;
 import blue.sparse.bshade.command.parameters.filter.ParameterFilters;
 import me.chrisumb.entitymanager.commands.EntityManagerCommand;
-import me.chrisumb.entitymanager.listeners.CreatureSpawnListener;
-import me.chrisumb.entitymanager.listeners.EntityDeathListener;
-import me.chrisumb.entitymanager.util.Stacker;
+import me.chrisumb.entitymanager.config.EntityTypeSettings;
+import me.chrisumb.entitymanager.module.drops.listeners.DropEntityDeathListener;
+import me.chrisumb.entitymanager.module.stacking.listeners.StackCreatureSpawnListener;
+import me.chrisumb.entitymanager.module.stacking.listeners.StackEntityDeathListener;
+import me.chrisumb.entitymanager.module.stacking.Stacker;
 import org.bukkit.entity.EntityType;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class EntityManagerPlugin extends JavaPlugin {
 
     private static EntityManagerPlugin instance;
+
+    public EntityManagerPlugin() {
+        if(instance != null)
+            throw new IllegalPluginAccessException("Plugin already loaded.");
+
+        instance = this;
+    }
 
     @Override
     public void onEnable() {
@@ -26,8 +36,9 @@ public class EntityManagerPlugin extends JavaPlugin {
 
     private void registerListeners() {
         final PluginManager pluginManager = getServer().getPluginManager();
-        pluginManager.registerEvents(new CreatureSpawnListener(), this);
-        pluginManager.registerEvents(new EntityDeathListener(), this);
+        pluginManager.registerEvents(new StackCreatureSpawnListener(), this);
+        pluginManager.registerEvents(new StackEntityDeathListener(), this);
+        pluginManager.registerEvents(new DropEntityDeathListener(), this);
     }
 
     private void registerCommands() {
@@ -35,7 +46,6 @@ public class EntityManagerPlugin extends JavaPlugin {
                 EntityManagerCommand.Stackable.class,
                 EntityType.class,
                 (stackable, entityType) -> {
-                    System.out.println("Checking entity type "+entityType);
                     EntityTypeSettings settings = EntityTypeSettings.getSettings(entityType);
                     if(settings == null)
                         return false;

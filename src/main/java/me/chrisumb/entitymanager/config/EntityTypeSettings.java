@@ -1,7 +1,8 @@
-package me.chrisumb.entitymanager;
+package me.chrisumb.entitymanager.config;
 
-import me.chrisumb.entitymanager.config.EntityTypeSettingsLoader;
+import me.chrisumb.entitymanager.module.drops.CustomDrop;
 import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 import java.util.HashMap;
@@ -82,6 +83,7 @@ public class EntityTypeSettings {
 
         private int defaultDeathCount;
         private Map<EntityDamageEvent.DamageCause, Integer> deathCauseCounts;
+        private List<CreatureSpawnEvent.SpawnReason> invalidSpawnReasons;
 
         private String stackNameFormat;
 
@@ -92,7 +94,8 @@ public class EntityTypeSettings {
                         boolean doDeathAnimation,
                         int defaultDeathCount,
                         Map<EntityDamageEvent.DamageCause, Integer> deathCauseCounts,
-                        String stackNameFormat
+                        String stackNameFormat,
+                        List<CreatureSpawnEvent.SpawnReason> invalidSpawnReasons
         ) {
             this.limit = limit;
             this.radius = radius;
@@ -102,8 +105,12 @@ public class EntityTypeSettings {
             this.defaultDeathCount = defaultDeathCount;
             this.deathCauseCounts = deathCauseCounts;
             this.stackNameFormat = stackNameFormat;
+            this.invalidSpawnReasons = invalidSpawnReasons;
         }
 
+        public List<CreatureSpawnEvent.SpawnReason> getInvalidSpawnReasons() {
+            return invalidSpawnReasons;
+        }
 
         public boolean doDeathAnimation() {
             return doDeathAnimation;
@@ -147,6 +154,15 @@ public class EntityTypeSettings {
 
     public class CustomDrops {
 
+        private List<CustomDrop> items;
+
+        public CustomDrops(List<CustomDrop> items) {
+            this.items = items;
+        }
+
+        public List<CustomDrop> getItems() {
+            return items;
+        }
     }
 
     public class CustomSpawns {

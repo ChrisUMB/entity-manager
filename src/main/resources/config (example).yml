@@ -28,34 +28,37 @@ entities:
       merge-diverse: false
     #Here, you can setup custom drops for entities.
     custom-drops:
-      #The chance, per entity death, that this item will drop. .5 = 50%
-      - chance: .5
-        #Full list: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
-        type: DIRT
-        amount:
-          min: 1
-          max: 3
-        #Optional. Defaults to the item name.
-        name: "Dirt!"
-        #Optional. Defaults to blank.
-        lore:
-          - "Thing!"
-        #Optional. Defaults to blank. https://hub.spigotmc.org/javadocs/spigot/org/bukkit/enchantments/Enchantment.html
-        enchantments:
-          - "DAMAGE_ALL:1"
-      - chance: .01
-        type: BEDROCK
-        amount:
-          min: 1
-          max: 2
-      - chance: .05
-        type: DIAMOND_SWORD
-        amount:
-          min: 1
-          max: 1
-        enchantments:
-          - "DAMAGE_ALL:5"
-          - "FIRE_ASPECT:2"
+      #The maximum amount of custom drops that can drop per kill. Set to -1 for no limit.
+      max-custom-drops: 3
+      items:
+        #The chance, per entity death, that this item will drop. .5 = 50%
+        - chance: .5
+          #Full list: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+          type: DIRT
+          amount:
+            min: 1
+            max: 3
+          #Optional. Defaults to the item name.
+          name: "Dirt!"
+          #Optional. Defaults to blank.
+          lore:
+            - "Thing!"
+          #Optional. Defaults to blank. https://hub.spigotmc.org/javadocs/spigot/org/bukkit/enchantments/Enchantment.html
+          enchantments:
+            - "DAMAGE_ALL:1"
+        - chance: .01
+          type: BEDROCK
+          amount:
+            min: 1
+            max: 2
+        - chance: .05
+          type: DIAMOND_SWORD
+          amount:
+            min: 1
+            max: 1
+          enchantments:
+            DAMAGE_ALL: 5
+            FIRE_ASPECT: 2
     #Here, you can customize the entity under certain spawn conditions.
     custom-spawns:
       #If the entity spawns for a spawn reason not configured here, this is the block that is applied.
@@ -101,5 +104,5 @@ entities:
                 #This will drop 50% of the time when the zombie dies.
                 drop-chance: .5
                 enchantments:
-                  - "DAMAGE_ALL:5"
-                  - "FIRE_ASPECT:2"
+                  DAMAGE_ALL: 5
+                  FIRE_ASPECT: 2

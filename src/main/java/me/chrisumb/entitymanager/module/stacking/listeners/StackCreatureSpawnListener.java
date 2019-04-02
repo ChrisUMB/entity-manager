@@ -1,14 +1,17 @@
-package me.chrisumb.entitymanager.listeners;
+package me.chrisumb.entitymanager.module.stacking.listeners;
 
-import me.chrisumb.entitymanager.util.Stacker;
+import me.chrisumb.entitymanager.util.EntityData;
+import me.chrisumb.entitymanager.module.stacking.Stacker;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 
-public class CreatureSpawnListener implements Listener {
+public class StackCreatureSpawnListener implements Listener {
 
 	@EventHandler
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		EntityData.set(event.getEntity(), "spawn-reason", event.getSpawnReason());
+
 		if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.CUSTOM)
 			return;
 

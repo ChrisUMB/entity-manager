@@ -1,19 +1,18 @@
 package me.chrisumb.entitymanager.util;
 
+import me.chrisumb.entitymanager.module.drops.CustomDrop;
+import me.chrisumb.entitymanager.module.stacking.Stacker;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.Ref;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static me.chrisumb.entitymanager.util.ReflectionUtil.*;
 
 public final class EntityUtil {
 
@@ -22,99 +21,63 @@ public final class EntityUtil {
     private static Method getCombatTrackerMethod = null;
     private static Method getDamageScalerMethod = null;
     private static Method dropDeathLootMethod = null;
+    private static Method dropEquipmentMethod = null;
     private static Method getExpRewardMethod = null;
     private static Method getRareDropMethod = null;
-    private static Method getBukkitEntity = null;
+    private static Method getBukkitEntityMethod = null;
     private static Method getHandleMethod = null;
     private static Method addDropsMethod = null;
 
     private static Field genericDamageSourceField = null;
     private static Field combatEntryListField = null;
     private static Field damageSourceField = null;
+    private static Field killerField = null;
     private static Field dropsField = null;
     private static Field worldField = null;
 
     private static Constructor<?> blockPositionConstructor = null;
 
     static {
+        NMSVersion version = NMS_VERSION;
 
         try {
-            Class<?> elClass = ReflectionUtil.getVanillaClass("EntityLiving");
-            getHandleMethod = ReflectionUtil.getCraftClass("entity.CraftLivingEntity").getDeclaredMethod("getHandle");
+            Class<?> scalerClass = getVanillaClass("DifficultyDamageScaler");
+            Class<?> blockPosition = getVanillaClass("BlockPosition");
 
-            genericDamageSourceField = ReflectionUtil.getVanillaClass("DamageSource").getDeclaredField("GENERIC");
+            regenerateEquipmentEnchantsMethod = getMethodIfValid(false, "EntityInsentient", "b", scalerClass);
+            regenerateEquipmentMethod = getMethodIfValid(false, "EntityInsentient", "a", scalerClass);
+            getCombatTrackerMethod = getMethodIfValid(false, "EntityLiving", "getCombatTracker");
+            getBukkitEntityMethod = getMethodIfValid(false, "Entity", "getBukkitEntity");
+            dropDeathLootMethod = getMethodIfValid(false, "EntityLiving", "dropDeathLoot", boolean.class, int.class);
+            dropEquipmentMethod = getMethodIfValid(false, "EntityLiving", "dropEquipment", boolean.class, int.class);
+            getExpRewardMethod = getMethodIfValid(false, "EntityLiving", "getExpReward");
+            getRareDropMethod = getMethodIfValid(false, "EntityLiving", "getRareDrop");
+            getHandleMethod = getMethodIfValid(true, "entity.CraftLivingEntity", "getHandle");
+            addDropsMethod = getMethodIfValid(false, "EntityLiving", "a", boolean.class, int.class, getVanillaClass("DamageSource"));
 
-            getBukkitEntity = ReflectionUtil.getVanillaClass("Entity").getMethod("getBukkitEntity");
-            getBukkitEntity.setAccessible(true);
+            genericDamageSourceField = getFieldIfValid(false, "DamageSource", "GENERIC");
+            combatEntryListField = getFieldIfValid(false, "CombatTracker", "a");
+            damageSourceField = getFieldIfValid(false, "CombatEntry", "a");
+            killerField = getFieldIfValid(false, "EntityLiving", "killer");
+            worldField = getFieldIfValid(false, "Entity", "world");
+            dropsField = getFieldIfValid(false, "EntityLiving", "drops");
 
-            worldField = ReflectionUtil.getVanillaClass("Entity").getDeclaredField("world");
-            worldField.setAccessible(true);
+            if (version.isBefore(NMSVersion.v1_9_R1)) {
+                getDamageScalerMethod = getMethodIfValid(false, "World", "E", blockPosition);
+            }
 
-            getDamageScalerMethod = ReflectionUtil.getVanillaClass("World")
-                    .getDeclaredMethod("getDamageScaler", ReflectionUtil.getVanillaClass("BlockPosition"));
-            getDamageScalerMethod.setAccessible(true);
+            if (version.isAfter(NMSVersion.v1_8_R3) && version.isBefore(NMSVersion.v1_13_R2)) {
+                getDamageScalerMethod = getMethodIfValid(false, "World", "D", blockPosition);
+            }
 
-            blockPositionConstructor = ReflectionUtil.getVanillaClass("BlockPosition")
-                    .getConstructor(ReflectionUtil.getVanillaClass("Entity"));
+            if (version.isAfter(NMSVersion.v1_12_R1)) {
+                getDamageScalerMethod = getMethodIfValid(false, "World", "getDamageScaler", blockPosition);
+            }
 
+            blockPositionConstructor = blockPosition.getConstructor(getVanillaClass("Entity"));
             blockPositionConstructor.setAccessible(true);
 
-            dropsField = elClass.getDeclaredField("drops");
-            dropsField.setAccessible(true);
-
-            dropDeathLootMethod = elClass.getDeclaredMethod("dropDeathLoot", boolean.class, int.class);
-            dropDeathLootMethod.setAccessible(true);
-
-            getExpRewardMethod = elClass.getDeclaredMethod("getExpReward");
-            getExpRewardMethod.setAccessible(true);
-
-            Class<?> difficultyDamageScalerClass = ReflectionUtil.getVanillaClass("DifficultyDamageScaler");
-            Class<?> entitySentientClass = ReflectionUtil.getVanillaClass("EntityInsentient");
-
-            regenerateEquipmentMethod = entitySentientClass.getDeclaredMethod("a", difficultyDamageScalerClass);
-            regenerateEquipmentMethod.setAccessible(true);
-
-            regenerateEquipmentEnchantsMethod = entitySentientClass.getDeclaredMethod("b", difficultyDamageScalerClass);
-            regenerateEquipmentEnchantsMethod.setAccessible(true);
-
-            try {
-                getCombatTrackerMethod = elClass.getDeclaredMethod("getCombatTracker");
-                getCombatTrackerMethod.setAccessible(true);
-            } catch (NoSuchMethodException ignored) {
-
-            }
-
-            try {
-                combatEntryListField = ReflectionUtil.getVanillaClass("CombatTracker").getDeclaredField("a");
-                combatEntryListField.setAccessible(true);
-            } catch (NoSuchFieldException ignored) {
-
-            }
-
-            try {
-                damageSourceField = ReflectionUtil.getVanillaClass("CombatEntry").getDeclaredField("a");
-                damageSourceField.setAccessible(true);
-            } catch (NoSuchFieldException ignored) {
-
-            }
-
-            try {
-                addDropsMethod = elClass.getDeclaredMethod("a",
-                        boolean.class,
-                        int.class,
-                        ReflectionUtil.getVanillaClass("DamageSource"));
-                addDropsMethod.setAccessible(true);
-            } catch (NoSuchMethodException ignored) {
-            }
-
-            try {
-                getRareDropMethod = elClass.getDeclaredMethod("getRareDrop");
-                getRareDropMethod.setAccessible(true);
-            } catch (NoSuchMethodException ignored) {
-            }
-
-
-        } catch (Exception e) {
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
             e.printStackTrace();
         }
     }
@@ -129,13 +92,15 @@ public final class EntityUtil {
     }
 
 
-    public static int getExperienceDrops(LivingEntity entity) {
-        return getExperienceDrops(getEntityHandle(entity));
+    public static int getExperienceDrops(LivingEntity entity, Player killer) {
+        return getExperienceDrops(getEntityHandle(entity), killer == null ? null : getEntityHandle(killer));
     }
 
     //Reflection for getting experience drops.
-    public static int getExperienceDrops(Object entityHandle) {
+    public static int getExperienceDrops(Object entityHandle, Object killerHandle) {
         try {
+            killerField.set(entityHandle, killerHandle);
+
             return (int) getExpRewardMethod.invoke(entityHandle);
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
@@ -150,7 +115,7 @@ public final class EntityUtil {
 
     public static void regenerateEquipment(Object entityHandle) {
         try {
-            Object craftEntity = getBukkitEntity.invoke(entityHandle);
+            Object craftEntity = getBukkitEntityMethod.invoke(entityHandle);
             LivingEntity livingEntity = (LivingEntity) craftEntity;
             livingEntity.getEquipment().clear();
 
@@ -171,6 +136,10 @@ public final class EntityUtil {
         List<ItemStack> items = target == null ? new ArrayList<>() : target;
 
         try {
+            LivingEntity livingEntity = (LivingEntity) getBukkitEntityMethod.invoke(entityHandle);
+
+            items.addAll(CustomDrop.generateCustomDrops(livingEntity));
+
             int lootingLevel = 0;
 
             if (killer != null) {
@@ -198,6 +167,10 @@ public final class EntityUtil {
                 addDropsMethod.invoke(entityHandle, true, lootingLevel, lastDamageSource);
             } else {
                 dropDeathLootMethod.invoke(entityHandle, true, lootingLevel);
+                EntityType type = livingEntity.getType();
+
+                if (type.name().contains("SKELETON") || type.name().contains("ZOMBIE"))
+                    dropEquipmentMethod.invoke(entityHandle, true, lootingLevel);
             }
 
             if (getRareDropMethod != null && random.nextFloat() < 0.025F + (float) lootingLevel * 0.01F)
@@ -216,7 +189,10 @@ public final class EntityUtil {
         if (one.getType() != two.getType())
             return false;
 
-        if (!Objects.equals(one.getCustomName(), two.getCustomName()))
+        if (Stacker.getStackCount(one) == 1 && one.getCustomName() != null)
+            return false;
+
+        if (Stacker.getStackCount(two) == 1 && two.getCustomName() != null)
             return false;
 
         if (one instanceof Ageable) {

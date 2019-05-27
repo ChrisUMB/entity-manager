@@ -230,7 +230,13 @@ public final class EntityUtil {
             if (tameableOne.isTamed() != tameableTwo.isTamed())
                 return false;
 
-            if (tameableOne.getOwner().getUniqueId() != tameableTwo.getOwner().getUniqueId())
+            AnimalTamer ownerOne = tameableOne.getOwner();
+            AnimalTamer ownerTwo = tameableTwo.getOwner();
+
+            if((ownerOne == null) != (ownerTwo == null))
+                return false;
+
+            if(ownerOne != null && !ownerOne.getUniqueId().equals(ownerTwo.getUniqueId()))
                 return false;
         }
 

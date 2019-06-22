@@ -56,7 +56,6 @@ public final class Stacker {
                     attemptStackEntity(entity);
                     attempts = 0;
                 }
-
             }
 
         }, frequency, frequency);
@@ -76,8 +75,11 @@ public final class Stacker {
         }
 
         CreatureSpawnEvent.SpawnReason reason = (CreatureSpawnEvent.SpawnReason) EntityData.get(entity, "spawn-reason");
+        if(reason == null)
+            reason = CreatureSpawnEvent.SpawnReason.DEFAULT;
 
-        if (stackingSettings.getInvalidSpawnReasons().contains(reason))
+        List<CreatureSpawnEvent.SpawnReason> invalidSpawnReasons = stackingSettings.getInvalidSpawnReasons();
+        if (invalidSpawnReasons.contains(reason))
             return;
 
         int radius = stackingSettings.getRadius();

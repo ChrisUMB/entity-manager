@@ -35,6 +35,8 @@ entities:
         - "NATURAL"
         - "CHUNK_GEN"
         - "DEFAULT"
+        #Leave this, don't touch it, entities spawned by plugins are considered "CUSTOM" and you probably don't want them to be stacking.
+        - "CUSTOM"
       #This will multiply drops if the entire stack is killed when set to true.
       multiply-drops: true
       #This controls whether or not "diverse" mobs will stack. For instance, if set to false, black sheep and blue sheep

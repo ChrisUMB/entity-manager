@@ -28,3 +28,7 @@ shadowJar {
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-parameters'
 }
+
+jar {
+    archivesBaseName = "EntityManager"
+}

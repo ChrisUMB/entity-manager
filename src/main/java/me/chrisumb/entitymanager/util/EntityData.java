@@ -32,9 +32,4 @@ public final class EntityData {
     public static int getInt(Entity entity, String key) {
         return (int) get(entity, key);
     }
-
-    public static OptionalInt getOptionalInt(Entity entity, String key) {
-        final Object value = get(entity, key);
-        return value == null ? OptionalInt.empty() : OptionalInt.of((Integer) value);
-    }
 }
